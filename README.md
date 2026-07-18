@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Village Football
 
 A website for footballers in your village — fixtures, results, standings,
@@ -79,3 +80,6 @@ MVP so the core data flow can be tested first.
   results form, since that's the one most likely to be filled in
   pitch-side with poor signal
 - Wire up SMS reminders for referees, reusing the Kwehu SMS integration
+=======
+# KABIEMIT-FOOTBALL
+>>>>>>> c2827bf10c1a721cb4033917e7ca5e35db12b6f5
