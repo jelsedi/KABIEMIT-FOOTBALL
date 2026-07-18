@@ -3,6 +3,20 @@ const router = express.Router();
 const { supabasePublic, supabaseAdmin } = require('../config/supabaseClient');
 const { requireAdmin, canActOnRegion } = require('../middleware/auth');
 
+// GET /api/players - list players, optionally filtered by ?team_id= (public)
+router.get('/', async (req, res) => {
+  let query = supabasePublic
+    .from('players')
+    .select('id, name, position, jersey_number, team_id, team:team_id ( name )')
+    .order('name', { ascending: true });
+
+  if (req.query.team_id) query = query.eq('team_id', req.query.team_id);
+
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 // GET /api/players/:id - player profile (public)
 router.get('/:id', async (req, res) => {
   const { data: player, error } = await supabasePublic
