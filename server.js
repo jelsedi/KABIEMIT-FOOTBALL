@@ -9,6 +9,7 @@ const playersRoutes = require('./routes/players');
 const resultsRoutes = require('./routes/results');
 const transfersRoutes = require('./routes/transfers');
 const regionsRoutes = require('./routes/regions');
+const pitchesRoutes = require('./routes/pitches');
 
 const app = express();
 app.use(cors());
@@ -24,6 +25,7 @@ app.use('/api/players', playersRoutes);
 app.use('/api/results', resultsRoutes);
 app.use('/api/transfers', transfersRoutes);
 app.use('/api/regions', regionsRoutes);
+app.use('/api/pitches', pitchesRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
