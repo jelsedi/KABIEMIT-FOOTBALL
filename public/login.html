@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Referee Login — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav><a href="/">Home</a></nav>
+  </div>
+
+  <main>
+    <h1>Referee Login</h1>
+    <p style="color:var(--text-muted)">Sign in with the account your league admin set up for you.</p>
+
+    <form class="stack" id="login-form">
+      <label>Email
+        <input type="email" id="email" required />
+      </label>
+      <label>Password
+        <input type="password" id="password" required />
+      </label>
+      <button type="submit">Sign in</button>
+      <div class="error-text" id="login-error"></div>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://your-project-ref.supabase.co';
+    const SUPABASE_ANON_KEY = 'your-anon-public-key';
+
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('login-error');
+      errorEl.textContent = '';
+
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+        return;
+      }
+
+      localStorage.setItem('vf_referee_token', data.session.access_token);
+      window.location.href = '/referee/dashboard.html';
+    });
+  </script>
+</body>
+</html>
