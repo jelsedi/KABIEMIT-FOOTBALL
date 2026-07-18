@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Standings — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/fixtures.html">Fixtures</a>
+      <a href="/teams.html">Teams</a>
+      <a href="/transfers.html">Transfers</a>
+      <a href="/admin/login.html">Admin</a>
+    </nav>
+  </div>
+
+  <main>
+    <h1 id="standings-title">Standings</h1>
+    <table id="standings-table" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Team</th>
+          <th>P</th>
+          <th>W</th>
+          <th>D</th>
+          <th>L</th>
+          <th>GF</th>
+          <th>GA</th>
+          <th>GD</th>
+          <th>Pts</th>
+        </tr>
+      </thead>
+      <tbody id="standings-body"></tbody>
+    </table>
+    <div id="standings-empty"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadStandings() {
+      // Find the region dynamically so this page isn't hardcoded to one ward.
+      const regions = await API.get('/regions');
+      const region = regions.find(r => r.type === 'ward') || regions[0];
+
+      if (!region) {
+        document.getElementById('standings-empty').innerHTML =
+          '<div class="empty-state">No region set up yet.</div>';
+        return;
+      }
+
+      document.getElementById('standings-title').textContent = `Standings — ${region.name}`;
+
+      const table = await API.get(`/regions/${region.id}/standings`);
+      const tableEl = document.getElementById('standings-table');
+      const bodyEl = document.getElementById('standings-body');
+      const emptyEl = document.getElementById('standings-empty');
+
+      const playedTeams = table.filter(t => t.played > 0);
+      if (!playedTeams.length) {
+        emptyEl.innerHTML = '<div class="empty-state">No results recorded yet — standings will appear once matches are played.</div>';
+        return;
+      }
+
+      tableEl.style.display = 'table';
+      bodyEl.innerHTML = table.map((t, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${t.name}</td>
+          <td>${t.played}</td>
+          <td>${t.won}</td>
+          <td>${t.drawn}</td>
+          <td>${t.lost}</td>
+          <td>${t.gf}</td>
+          <td>${t.ga}</td>
+          <td>${t.gf - t.ga}</td>
+          <td><strong>${t.points}</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    loadStandings().catch(err => {
+      document.getElementById('standings-empty').innerHTML =
+        `<div class="error-text">${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>
