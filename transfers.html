@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transfers — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/fixtures.html">Fixtures</a>
+      <a href="/standings.html">Standings</a>
+      <a href="/roster.html">Roster</a>
+      <a href="/discipline.html">Discipline</a>
+      <a href="/teams.html">Teams</a>
+      <a href="/admin/login.html">Admin</a>
+    </nav>
+  </div>
+
+  <main>
+    <h1>Transfers</h1>
+    <table id="transfers-table">
+      <thead>
+        <tr><th>Player</th><th>From</th><th>To</th><th>Type</th><th>Date</th></tr>
+      </thead>
+      <tbody id="transfers-body"></tbody>
+    </table>
+    <div id="transfers-empty"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadTransfers() {
+      const transfers = await API.get('/transfers');
+      const body = document.getElementById('transfers-body');
+      const empty = document.getElementById('transfers-empty');
+
+      if (!transfers.length) {
+        document.getElementById('transfers-table').style.display = 'none';
+        empty.innerHTML = '<div class="empty-state">No transfers recorded yet.</div>';
+        return;
+      }
+
+      body.innerHTML = transfers.map(t => `
+        <tr>
+          <td>${t.player?.name || '—'}</td>
+          <td>${t.from_team?.name || 'Free agent'}</td>
+          <td>${t.to_team?.name || '—'}</td>
+          <td>${t.transfer_type || '—'}</td>
+          <td>${t.transfer_date || '—'}</td>
+        </tr>
+      `).join('');
+    }
+
+    loadTransfers().catch(err => {
+      document.getElementById('transfers-empty').innerHTML =
+        `<div class="error-text">${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>

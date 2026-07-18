@@ -11,6 +11,7 @@ const transfersRoutes = require('./routes/transfers');
 const regionsRoutes = require('./routes/regions');
 const pitchesRoutes = require('./routes/pitches');
 const disciplineRoutes = require('./routes/discipline');
+const rosterRoutes = require('./routes/roster');
 
 const app = express();
 app.use(cors());
@@ -28,6 +29,7 @@ app.use('/api/transfers', transfersRoutes);
 app.use('/api/regions', regionsRoutes);
 app.use('/api/pitches', pitchesRoutes);
 app.use('/api/discipline', disciplineRoutes);
+app.use('/api/roster', rosterRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fixtures — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/teams.html">Teams</a>
+      <a href="/standings.html">Standings</a>
+      <a href="/roster.html">Roster</a>
+      <a href="/discipline.html">Discipline</a>
+      <a href="/transfers.html">Transfers</a>
+      <a href="/admin/login.html">Admin</a>
+    </nav>
+  </div>
+
+  <main>
+    <h1>Fixtures</h1>
+    <div id="fixtures-list"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadFixtures() {
+      const fixtures = await API.get('/fixtures');
+      const listEl = document.getElementById('fixtures-list');
+
+      if (!fixtures.length) {
+        listEl.innerHTML = '<div class="empty-state">No fixtures yet.</div>';
+        return;
+      }
+
+      listEl.innerHTML = fixtures.map(f => {
+        const r = Array.isArray(f.results) ? f.results[0] : f.results;
+        const scoreOrTime = r
+          ? `${r.home_score} – ${r.away_score}`
+          : API.formatDate(f.match_date).split(' · ')[1];
+        return `
+          <div class="card fixture-row">
+            <div>
+              <div class="teams">${f.home_team.name} vs ${f.away_team.name}</div>
+              <div class="meta">${API.formatDate(f.match_date)}${f.pitch ? ' · ' + f.pitch.name : ''}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="status-tag ${f.status}">${f.status}</div>
+              <div class="score">${scoreOrTime}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    loadFixtures().catch(err => {
+      document.getElementById('fixtures-list').innerHTML =
+        `<div class="error-text">${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>

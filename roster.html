@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matchday Roster — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/fixtures.html">Fixtures</a>
+      <a href="/teams.html">Teams</a>
+      <a href="/discipline.html">Discipline</a>
+      <a href="/admin/login.html">Admin</a>
+    </nav>
+  </div>
+
+  <main>
+    <h1>Matchday Roster</h1>
+    <form class="stack" style="margin-bottom:24px">
+      <label>Fixture
+        <select id="fixture-select"></select>
+      </label>
+    </form>
+
+    <div style="display:flex; gap:24px; flex-wrap:wrap">
+      <div style="flex:1; min-width:240px">
+        <h2 id="home-title">Home</h2>
+        <div id="home-roster"></div>
+      </div>
+      <div style="flex:1; min-width:240px">
+        <h2 id="away-title">Away</h2>
+        <div id="away-roster"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    let fixturesCache = [];
+
+    async function loadFixtureOptions() {
+      fixturesCache = await API.get('/fixtures');
+      const select = document.getElementById('fixture-select');
+      select.innerHTML = fixturesCache.map(f =>
+        `<option value="${f.id}">${f.home_team.name} vs ${f.away_team.name} — ${API.formatDate(f.match_date)}</option>`
+      ).join('');
+      select.addEventListener('change', () => loadRoster(select.value));
+      if (fixturesCache.length) loadRoster(select.value);
+      else {
+        document.getElementById('home-roster').innerHTML = '<div class="empty-state">No fixtures yet.</div>';
+      }
+    }
+
+    async function loadRoster(fixtureId) {
+      const fixture = fixturesCache.find(f => f.id === fixtureId);
+      if (!fixture) return;
+
+      document.getElementById('home-title').textContent = fixture.home_team.name;
+      document.getElementById('away-title').textContent = fixture.away_team.name;
+
+      const roster = await API.get(`/roster/${fixtureId}`);
+      const home = roster.filter(r => r.team_id === fixture.home_team.id);
+      const away = roster.filter(r => r.team_id === fixture.away_team.id);
+
+      const renderList = (players) => players.length
+        ? players.map(r => `
+            <div class="card">
+              ${r.player.jersey_number ? `#${r.player.jersey_number} ` : ''}${r.player.name}
+              ${r.player.position ? `<span class="meta">— ${r.player.position}</span>` : ''}
+            </div>`).join('')
+        : '<div class="empty-state">No players named yet.</div>';
+
+      document.getElementById('home-roster').innerHTML = renderList(home);
+      document.getElementById('away-roster').innerHTML = renderList(away);
+    }
+
+    loadFixtureOptions().catch(err => {
+      document.getElementById('home-roster').innerHTML = `<div class="error-text">${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>
