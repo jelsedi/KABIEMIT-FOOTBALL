@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav><a href="/">Home</a></nav>
+  </div>
+
+  <main>
+    <h1>Admin Login</h1>
+    <p style="color:var(--text-muted)">Sign in with the email/password set up for you in Supabase.</p>
+
+    <form class="stack" id="login-form">
+      <label>Email
+        <input type="email" id="email" required />
+      </label>
+      <label>Password
+        <input type="password" id="password" required />
+      </label>
+      <button type="submit">Sign in</button>
+      <div class="error-text" id="login-error"></div>
+    </form>
+  </main>
+
+  <!-- Supabase JS client, browser build -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    // Fill these in with your project's public values — same as .env
+    // but SUPABASE_ANON_KEY is safe to expose in the browser by design.
+    const SUPABASE_URL = 'https://dsfopfnuyinvgaoukjcp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZm9wZm51eWludmdhb3VramNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNjMwMjgsImV4cCI6MjA5OTgzOTAyOH0.zWQ8V_WYzppHLV2YuQUCsca4v112InyEXh2FzFme1rA';
+
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('login-error');
+      errorEl.textContent = '';
+
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+        return;
+      }
+
+      localStorage.setItem('vf_access_token', data.session.access_token);
+      window.location.href = '/admin/dashboard.html';
+    });
+  </script>
+</body>
+</html>

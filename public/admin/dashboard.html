@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football · Admin</div>
+    <nav>
+      <a href="/">View site</a>
+      <a href="#" id="logout-link">Log out</a>
+    </nav>
+  </div>
+
+  <main>
+    <h1>Dashboard</h1>
+    <p id="access-check" style="color:var(--text-muted)"></p>
+
+    <h2>Add a team</h2>
+    <form class="stack" id="team-form">
+      <label>Team name<input type="text" id="team-name" required /></label>
+      <label>Home ground<input type="text" id="team-ground" /></label>
+      <label>Region ID<input type="text" id="team-region" placeholder="paste from /api/regions" required /></label>
+      <button type="submit">Add team</button>
+      <div class="error-text" id="team-error"></div>
+    </form>
+
+    <h2>Schedule a fixture</h2>
+    <form class="stack" id="fixture-form">
+      <label>Home team ID<input type="text" id="fx-home" required /></label>
+      <label>Away team ID<input type="text" id="fx-away" required /></label>
+      <label>Match date/time<input type="datetime-local" id="fx-date" required /></label>
+      <label>Region ID<input type="text" id="fx-region" required /></label>
+      <button type="submit">Schedule fixture</button>
+      <div class="error-text" id="fixture-error"></div>
+    </form>
+
+    <h2>Record a result</h2>
+    <form class="stack" id="result-form">
+      <label>Fixture ID<input type="text" id="res-fixture" required /></label>
+      <label>Home score<input type="number" id="res-home" min="0" required /></label>
+      <label>Away score<input type="number" id="res-away" min="0" required /></label>
+      <button type="submit">Save result</button>
+      <div class="error-text" id="result-error"></div>
+    </form>
+
+    <h2>Log a transfer</h2>
+    <form class="stack" id="transfer-form">
+      <label>Player ID<input type="text" id="tr-player" required /></label>
+      <label>From team ID (leave blank if free agent)<input type="text" id="tr-from" /></label>
+      <label>To team ID<input type="text" id="tr-to" required /></label>
+      <label>Type
+        <select id="tr-type">
+          <option value="free">Free</option>
+          <option value="loan">Loan</option>
+          <option value="permanent">Permanent</option>
+        </select>
+      </label>
+      <button type="submit">Log transfer</button>
+      <div class="error-text" id="transfer-error"></div>
+    </form>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!localStorage.getItem('vf_access_token')) {
+      window.location.href = '/admin/login.html';
+    }
+
+    document.getElementById('logout-link').addEventListener('click', () => {
+      localStorage.removeItem('vf_access_token');
+      window.location.href = '/admin/login.html';
+    });
+
+    function wireForm(formId, errorId, buildBody, endpoint) {
+      document.getElementById(formId).addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById(errorId);
+        errorEl.textContent = '';
+        try {
+          await API.post(endpoint, buildBody());
+          errorEl.style.color = 'var(--pitch-green)';
+          errorEl.textContent = 'Saved.';
+          e.target.reset();
+        } catch (err) {
+          errorEl.style.color = '#c0392b';
+          errorEl.textContent = err.message;
+        }
+      });
+    }
+
+    wireForm('team-form', 'team-error', () => ({
+      name: document.getElementById('team-name').value,
+      home_ground: document.getElementById('team-ground').value,
+      region_id: document.getElementById('team-region').value,
+      client_id: crypto.randomUUID(),
+    }), '/teams');
+
+    wireForm('fixture-form', 'fixture-error', () => ({
+      home_team_id: document.getElementById('fx-home').value,
+      away_team_id: document.getElementById('fx-away').value,
+      match_date: new Date(document.getElementById('fx-date').value).toISOString(),
+      region_id: document.getElementById('fx-region').value,
+      client_id: crypto.randomUUID(),
+    }), '/fixtures');
+
+    wireForm('result-form', 'result-error', () => ({
+      fixture_id: document.getElementById('res-fixture').value,
+      home_score: Number(document.getElementById('res-home').value),
+      away_score: Number(document.getElementById('res-away').value),
+    }), '/results');
+
+    wireForm('transfer-form', 'transfer-error', () => ({
+      player_id: document.getElementById('tr-player').value,
+      from_team_id: document.getElementById('tr-from').value || null,
+      to_team_id: document.getElementById('tr-to').value,
+      transfer_type: document.getElementById('tr-type').value,
+      transfer_date: new Date().toISOString().slice(0, 10),
+    }), '/transfers');
+  </script>
+</body>
+</html>

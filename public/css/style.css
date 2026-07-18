@@ -1,0 +1,183 @@
+/* Village Football — design tokens
+   Palette: pitch green, chalk white, floodlight gold, soil brown
+   Type: condensed sporty display for scores/headings, clean sans for body */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --pitch-green: #14532d;
+  --pitch-green-dark: #0b3319;
+  --chalk: #f7f5f0;
+  --gold: #e0b03d;
+  --soil: #4a3728;
+  --line: #d8d2c4;
+  --text: #1c1a16;
+  --text-muted: #6b6558;
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--chalk);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+h1, h2, h3, .score {
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.topbar {
+  background: var(--pitch-green);
+  color: var(--chalk);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 4px solid var(--gold);
+}
+
+.topbar .brand {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar .brand::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: var(--gold);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.topbar nav a {
+  margin-left: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+.topbar nav a:hover { opacity: 1; text-decoration: underline; }
+
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.hero {
+  background: var(--pitch-green-dark);
+  color: var(--chalk);
+  padding: 40px 28px;
+  border-radius: var(--radius);
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -40px; top: -40px;
+  width: 180px; height: 180px;
+  border: 3px solid rgba(224,176,61,0.25);
+  border-radius: 50%;
+}
+.hero .eyebrow {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.hero h1 { font-size: 1.8rem; margin: 8px 0 4px; }
+.hero p { margin: 0; opacity: 0.85; }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 12px;
+}
+
+.fixture-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.fixture-row .teams {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.fixture-row .meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.fixture-row .score {
+  font-size: 1.3rem;
+  color: var(--pitch-green);
+  min-width: 70px;
+  text-align: right;
+}
+
+.status-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--soil);
+}
+.status-tag.live { background: #c0392b; color: white; }
+.status-tag.finished { background: var(--pitch-green); color: white; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+th { color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+form.stack { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
+form.stack label { font-size: 0.85rem; font-weight: 600; color: var(--soil); }
+form.stack input, form.stack select {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+button {
+  background: var(--pitch-green);
+  color: white;
+  border: none;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+button:hover { background: var(--pitch-green-dark); }
+
+.error-text { color: #c0392b; font-size: 0.85rem; }

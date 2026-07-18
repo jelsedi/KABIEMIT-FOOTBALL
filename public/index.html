@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football</div>
+    <nav>
+      <a href="/fixtures.html">Fixtures</a>
+      <a href="/teams.html">Teams</a>
+      <a href="/transfers.html">Transfers</a>
+      <a href="/admin/login.html">Admin</a>
+    </nav>
+  </div>
+
+  <main>
+    <div class="hero">
+      <div class="eyebrow">Next up</div>
+      <h1 id="next-fixture-title">Loading next fixture…</h1>
+      <p id="next-fixture-meta"></p>
+    </div>
+
+    <h2>Recent results</h2>
+    <div id="recent-results"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadHome() {
+      const fixtures = await API.get('/fixtures');
+      const now = new Date();
+
+      const upcoming = fixtures.filter(f => new Date(f.match_date) >= now && f.status !== 'finished');
+      const finished = fixtures.filter(f => f.status === 'finished').slice(-5).reverse();
+
+      const titleEl = document.getElementById('next-fixture-title');
+      const metaEl = document.getElementById('next-fixture-meta');
+
+      if (upcoming.length) {
+        const f = upcoming[0];
+        titleEl.textContent = `${f.home_team.name} vs ${f.away_team.name}`;
+        metaEl.textContent = `${API.formatDate(f.match_date)}${f.pitch ? ' · ' + f.pitch.name : ''}`;
+      } else {
+        titleEl.textContent = 'No fixtures scheduled yet';
+        metaEl.textContent = 'Check back soon, or ask an admin to add one.';
+      }
+
+      const resultsEl = document.getElementById('recent-results');
+      if (!finished.length) {
+        resultsEl.innerHTML = '<div class="empty-state">No results recorded yet.</div>';
+        return;
+      }
+      resultsEl.innerHTML = finished.map(f => {
+        const r = Array.isArray(f.results) ? f.results[0] : f.results;
+        return `
+          <div class="card fixture-row">
+            <div>
+              <div class="teams">${f.home_team.name} vs ${f.away_team.name}</div>
+              <div class="meta">${API.formatDate(f.match_date)}</div>
+            </div>
+            <div class="score">${r ? `${r.home_score} – ${r.away_score}` : '—'}</div>
+          </div>`;
+      }).join('');
+    }
+
+    loadHome().catch(err => {
+      document.getElementById('next-fixture-title').textContent = 'Could not load fixtures';
+      document.getElementById('next-fixture-meta').textContent = err.message;
+    });
+  </script>
+</body>
+</html>
