@@ -23,24 +23,50 @@
     <form class="stack" id="team-form">
       <label>Team name<input type="text" id="team-name" required /></label>
       <label>Home ground<input type="text" id="team-ground" /></label>
-      <label>Region ID<input type="text" id="team-region" placeholder="paste from /api/regions" required /></label>
       <button type="submit">Add team</button>
       <div class="error-text" id="team-error"></div>
     </form>
 
+    <h2>Register a player</h2>
+    <form class="stack" id="player-form">
+      <label>Player name<input type="text" id="player-name" required /></label>
+      <label>Team
+        <select id="player-team" required></select>
+      </label>
+      <label>Position
+        <select id="player-position">
+          <option value="Goalkeeper">Goalkeeper</option>
+          <option value="Defender">Defender</option>
+          <option value="Midfielder">Midfielder</option>
+          <option value="Forward">Forward</option>
+        </select>
+      </label>
+      <label>Jersey number<input type="number" id="player-jersey" min="1" max="99" /></label>
+      <button type="submit">Register player</button>
+      <div class="error-text" id="player-error"></div>
+    </form>
+
     <h2>Schedule a fixture</h2>
     <form class="stack" id="fixture-form">
-      <label>Home team ID<input type="text" id="fx-home" required /></label>
-      <label>Away team ID<input type="text" id="fx-away" required /></label>
+      <label>Home team
+        <select id="fx-home" required></select>
+      </label>
+      <label>Away team
+        <select id="fx-away" required></select>
+      </label>
+      <label>Pitch
+        <select id="fx-pitch"><option value="">— none set —</option></select>
+      </label>
       <label>Match date/time<input type="datetime-local" id="fx-date" required /></label>
-      <label>Region ID<input type="text" id="fx-region" required /></label>
       <button type="submit">Schedule fixture</button>
       <div class="error-text" id="fixture-error"></div>
     </form>
 
     <h2>Record a result</h2>
     <form class="stack" id="result-form">
-      <label>Fixture ID<input type="text" id="res-fixture" required /></label>
+      <label>Fixture
+        <select id="res-fixture" required></select>
+      </label>
       <label>Home score<input type="number" id="res-home" min="0" required /></label>
       <label>Away score<input type="number" id="res-away" min="0" required /></label>
       <button type="submit">Save result</button>
@@ -49,9 +75,12 @@
 
     <h2>Log a transfer</h2>
     <form class="stack" id="transfer-form">
-      <label>Player ID<input type="text" id="tr-player" required /></label>
-      <label>From team ID (leave blank if free agent)<input type="text" id="tr-from" /></label>
-      <label>To team ID<input type="text" id="tr-to" required /></label>
+      <label>Player
+        <select id="tr-player" required></select>
+      </label>
+      <label>To team
+        <select id="tr-to" required></select>
+      </label>
       <label>Type
         <select id="tr-type">
           <option value="free">Free</option>
@@ -75,7 +104,53 @@
       window.location.href = '/admin/login.html';
     });
 
-    function wireForm(formId, errorId, buildBody, endpoint) {
+    let REGION_ID = null; // resolved on load, used for team/player/fixture creation
+
+    function fillSelect(el, items, labelFn, valueFn) {
+      el.innerHTML = items.map(i => `<option value="${valueFn(i)}">${labelFn(i)}</option>`).join('');
+    }
+
+    async function loadDropdowns() {
+      const [regions, teams, players, fixtures, pitches] = await Promise.all([
+        API.get('/regions'),
+        API.get('/teams'),
+        API.get('/players'),
+        API.get('/fixtures'),
+        API.get('/pitches'),
+      ]);
+
+      const ward = regions.find(r => r.type === 'ward') || regions[0];
+      REGION_ID = ward ? ward.id : null;
+      document.getElementById('access-check').textContent = ward
+        ? `Working region: ${ward.name}`
+        : 'No region found — create one before adding teams.';
+
+      fillSelect(document.getElementById('player-team'), teams, t => t.name, t => t.id);
+      fillSelect(document.getElementById('fx-home'), teams, t => t.name, t => t.id);
+      fillSelect(document.getElementById('fx-away'), teams, t => t.name, t => t.id);
+      fillSelect(document.getElementById('tr-to'), teams, t => t.name, t => t.id);
+
+      const pitchSelect = document.getElementById('fx-pitch');
+      pitchSelect.innerHTML = '<option value="">— none set —</option>' +
+        pitches.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+      fillSelect(
+        document.getElementById('tr-player'),
+        players,
+        p => `${p.name}${p.team ? ' (' + p.team.name + ')' : ''}`,
+        p => p.id
+      );
+
+      const upcoming = fixtures.filter(f => f.status !== 'finished');
+      fillSelect(
+        document.getElementById('res-fixture'),
+        upcoming,
+        f => `${f.home_team.name} vs ${f.away_team.name} — ${API.formatDate(f.match_date)}`,
+        f => f.id
+      );
+    }
+
+    function wireForm(formId, errorId, buildBody, endpoint, onSuccess) {
       document.getElementById(formId).addEventListener('submit', async (e) => {
         e.preventDefault();
         const errorEl = document.getElementById(errorId);
@@ -85,6 +160,7 @@
           errorEl.style.color = 'var(--pitch-green)';
           errorEl.textContent = 'Saved.';
           e.target.reset();
+          if (onSuccess) await onSuccess();
         } catch (err) {
           errorEl.style.color = '#c0392b';
           errorEl.textContent = err.message;
@@ -92,34 +168,50 @@
       });
     }
 
-    wireForm('team-form', 'team-error', () => ({
-      name: document.getElementById('team-name').value,
-      home_ground: document.getElementById('team-ground').value,
-      region_id: document.getElementById('team-region').value,
-      client_id: crypto.randomUUID(),
-    }), '/teams');
+    loadDropdowns().then(() => {
+      wireForm('team-form', 'team-error', () => ({
+        name: document.getElementById('team-name').value,
+        home_ground: document.getElementById('team-ground').value,
+        region_id: REGION_ID,
+        client_id: crypto.randomUUID(),
+      }), '/teams', loadDropdowns);
 
-    wireForm('fixture-form', 'fixture-error', () => ({
-      home_team_id: document.getElementById('fx-home').value,
-      away_team_id: document.getElementById('fx-away').value,
-      match_date: new Date(document.getElementById('fx-date').value).toISOString(),
-      region_id: document.getElementById('fx-region').value,
-      client_id: crypto.randomUUID(),
-    }), '/fixtures');
+      wireForm('player-form', 'player-error', () => ({
+        name: document.getElementById('player-name').value,
+        team_id: document.getElementById('player-team').value,
+        position: document.getElementById('player-position').value,
+        jersey_number: document.getElementById('player-jersey').value || null,
+        region_id: REGION_ID,
+        client_id: crypto.randomUUID(),
+      }), '/players', loadDropdowns);
 
-    wireForm('result-form', 'result-error', () => ({
-      fixture_id: document.getElementById('res-fixture').value,
-      home_score: Number(document.getElementById('res-home').value),
-      away_score: Number(document.getElementById('res-away').value),
-    }), '/results');
+      wireForm('fixture-form', 'fixture-error', () => ({
+        home_team_id: document.getElementById('fx-home').value,
+        away_team_id: document.getElementById('fx-away').value,
+        pitch_id: document.getElementById('fx-pitch').value || null,
+        match_date: new Date(document.getElementById('fx-date').value).toISOString(),
+        region_id: REGION_ID,
+        client_id: crypto.randomUUID(),
+      }), '/fixtures', loadDropdowns);
 
-    wireForm('transfer-form', 'transfer-error', () => ({
-      player_id: document.getElementById('tr-player').value,
-      from_team_id: document.getElementById('tr-from').value || null,
-      to_team_id: document.getElementById('tr-to').value,
-      transfer_type: document.getElementById('tr-type').value,
-      transfer_date: new Date().toISOString().slice(0, 10),
-    }), '/transfers');
+      wireForm('result-form', 'result-error', () => ({
+        fixture_id: document.getElementById('res-fixture').value,
+        home_score: Number(document.getElementById('res-home').value),
+        away_score: Number(document.getElementById('res-away').value),
+      }), '/results', loadDropdowns);
+
+      wireForm('transfer-form', 'transfer-error', () => {
+        const playerSelect = document.getElementById('tr-player');
+        return {
+          player_id: playerSelect.value,
+          to_team_id: document.getElementById('tr-to').value,
+          transfer_type: document.getElementById('tr-type').value,
+          transfer_date: new Date().toISOString().slice(0, 10),
+        };
+      }, '/transfers', loadDropdowns);
+    }).catch(err => {
+      document.getElementById('access-check').textContent = 'Failed to load: ' + err.message;
+    });
   </script>
 </body>
 </html>
