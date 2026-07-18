@@ -51,4 +51,40 @@ function canActOnRegion(admin, regionId) {
   return admin.region_id === regionId;
 }
 
-module.exports = { requireAdmin, canActOnRegion };
+module.exports = { requireAdmin, canActOnRegion, requireReferee };
+
+/**
+ * Verifies the request carries a valid Supabase session token,
+ * then checks the referees table for a row linked to that user.
+ * Attaches req.referee if valid.
+ */
+async function requireReferee(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+    if (!token) return res.status(401).json({ error: 'Missing auth token' });
+
+    const { data: userData, error: userError } = await supabasePublic.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+
+    const { data: refRow, error: refError } = await supabaseAdmin
+      .from('referees')
+      .select('id, name, region_id')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    if (refError || !refRow) {
+      return res.status(403).json({ error: 'Not registered as a referee' });
+    }
+
+    req.referee = refRow;
+    req.user = userData.user;
+    next();
+  } catch (err) {
+    console.error('[auth] unexpected error', err);
+    res.status(500).json({ error: 'Auth check failed' });
+  }
+}
