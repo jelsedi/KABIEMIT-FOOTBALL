@@ -91,6 +91,49 @@
       <button type="submit">Log transfer</button>
       <div class="error-text" id="transfer-error"></div>
     </form>
+
+    <h2>Log a discipline card</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem">
+      Logging a card here immediately makes the player ineligible for
+      the matchday roster below, until their suspension is served.
+    </p>
+    <form class="stack" id="discipline-form">
+      <label>Player
+        <select id="disc-player" required></select>
+      </label>
+      <label>Fixture (match it happened in)
+        <select id="disc-fixture" required></select>
+      </label>
+      <label>Card type
+        <select id="disc-card-type">
+          <option value="yellow">Yellow</option>
+          <option value="red">Red</option>
+        </select>
+      </label>
+      <label>Reason<input type="text" id="disc-reason" /></label>
+      <label>Suspension (matches)<input type="number" id="disc-suspension" min="0" value="0" /></label>
+      <button type="submit">Log card</button>
+      <div class="error-text" id="discipline-error"></div>
+    </form>
+
+    <h2>Add player to matchday roster</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem">
+      Suspended players are blocked automatically — you'll see the
+      reason if it happens.
+    </p>
+    <form class="stack" id="roster-form">
+      <label>Fixture
+        <select id="roster-fixture" required></select>
+      </label>
+      <label>Team
+        <select id="roster-team" required></select>
+      </label>
+      <label>Player
+        <select id="roster-player" required></select>
+      </label>
+      <button type="submit">Add to roster</button>
+      <div class="error-text" id="roster-error"></div>
+    </form>
   </main>
 
   <script src="/js/api.js"></script>
@@ -105,6 +148,31 @@
     });
 
     let REGION_ID = null; // resolved on load, used for team/player/fixture creation
+
+    function updateRosterTeamOptions() {
+      const fixtureId = document.getElementById('roster-fixture').value;
+      const fixture = (window._allFixtures || []).find(f => f.id === fixtureId);
+      const teamSelect = document.getElementById('roster-team');
+      if (!fixture) { teamSelect.innerHTML = ''; return; }
+
+      teamSelect.innerHTML = `
+        <option value="${fixture.home_team.id}">${fixture.home_team.name} (home)</option>
+        <option value="${fixture.away_team.id}">${fixture.away_team.name} (away)</option>
+      `;
+      updateRosterPlayerOptions();
+    }
+
+    function updateRosterPlayerOptions() {
+      const teamId = document.getElementById('roster-team').value;
+      const playerSelect = document.getElementById('roster-player');
+      const eligible = (window._allPlayers || []).filter(p => p.team_id === teamId);
+      playerSelect.innerHTML = eligible.length
+        ? eligible.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+        : '<option value="">No players registered for this team yet</option>';
+    }
+
+    document.getElementById('roster-fixture').addEventListener('change', updateRosterTeamOptions);
+    document.getElementById('roster-team').addEventListener('change', updateRosterPlayerOptions);
 
     function fillSelect(el, items, labelFn, valueFn) {
       el.innerHTML = items.map(i => `<option value="${valueFn(i)}">${labelFn(i)}</option>`).join('');
@@ -140,6 +208,31 @@
         p => `${p.name}${p.team ? ' (' + p.team.name + ')' : ''}`,
         p => p.id
       );
+
+      fillSelect(
+        document.getElementById('disc-player'),
+        players,
+        p => `${p.name}${p.team ? ' (' + p.team.name + ')' : ''}`,
+        p => p.id
+      );
+
+      fillSelect(
+        document.getElementById('disc-fixture'),
+        fixtures,
+        f => `${f.home_team.name} vs ${f.away_team.name} — ${API.formatDate(f.match_date)}`,
+        f => f.id
+      );
+
+      window._allPlayers = players;
+      window._allFixtures = fixtures;
+
+      fillSelect(
+        document.getElementById('roster-fixture'),
+        fixtures,
+        f => `${f.home_team.name} vs ${f.away_team.name} — ${API.formatDate(f.match_date)}`,
+        f => f.id
+      );
+      updateRosterTeamOptions();
 
       const upcoming = fixtures.filter(f => f.status !== 'finished');
       fillSelect(
@@ -209,6 +302,20 @@
           transfer_date: new Date().toISOString().slice(0, 10),
         };
       }, '/transfers', loadDropdowns);
+
+      wireForm('discipline-form', 'discipline-error', () => ({
+        player_id: document.getElementById('disc-player').value,
+        fixture_id: document.getElementById('disc-fixture').value,
+        card_type: document.getElementById('disc-card-type').value,
+        reason: document.getElementById('disc-reason').value || null,
+        suspension_matches: Number(document.getElementById('disc-suspension').value) || 0,
+      }), '/discipline', loadDropdowns);
+
+      wireForm('roster-form', 'roster-error', () => ({
+        fixture_id: document.getElementById('roster-fixture').value,
+        team_id: document.getElementById('roster-team').value,
+        player_id: document.getElementById('roster-player').value,
+      }), '/roster', null);
     }).catch(err => {
       document.getElementById('access-check').textContent = 'Failed to load: ' + err.message;
     });

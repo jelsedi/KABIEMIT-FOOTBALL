@@ -1,39 +1,46 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
-const fixturesRoutes = require('./routes/fixtures');
-const teamsRoutes = require('./routes/teams');
-const playersRoutes = require('./routes/players');
-const resultsRoutes = require('./routes/results');
-const transfersRoutes = require('./routes/transfers');
-const regionsRoutes = require('./routes/regions');
-const pitchesRoutes = require('./routes/pitches');
-const disciplineRoutes = require('./routes/discipline');
-const rosterRoutes = require('./routes/roster');
+const authRoutes     = require('./routes/auth');
+const orderRoutes    = require('./routes/orders');
+const vendorRoutes   = require('./routes/vendors');
+const riderRoutes    = require('./routes/riders');
+const paymentRoutes  = require('./routes/payments');
+const productRoutes  = require('./routes/products');
+const adminRoutes    = require('./routes/admin');
 
 const app = express();
-app.use(cors());
+
+app.use(helmet());
+app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(express.json());
 
-// Static frontend (vanilla HTML/CSS/JS, same pattern as Malindi Delivery)
-app.use(express.static(path.join(__dirname, 'public')));
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100,
+  message: { error: 'Too many requests, please try again later.' } });
+app.use('/api/', limiter);
 
-// API routes
-app.use('/api/fixtures', fixturesRoutes);
-app.use('/api/teams', teamsRoutes);
-app.use('/api/players', playersRoutes);
-app.use('/api/results', resultsRoutes);
-app.use('/api/transfers', transfersRoutes);
-app.use('/api/regions', regionsRoutes);
-app.use('/api/pitches', pitchesRoutes);
-app.use('/api/discipline', disciplineRoutes);
-app.use('/api/roster', rosterRoutes);
+app.use('/api/auth',     authRoutes);
+app.use('/api/orders',   orderRoutes);
+app.use('/api/vendors',  vendorRoutes);
+app.use('/api/riders',   riderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/admin',    adminRoutes);
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Village Football running on http://localhost:${PORT}`);
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'Kwehu Delivery API', time: new Date().toISOString() });
 });
+
+app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
+
+app.use((err, req, res, next) => {
+  console.error('[Error]', err.message);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`Kwehu Delivery API running on port ${PORT}`));
+module.exports = app;
