@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Referee Dashboard — Village Football</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Village Football · Referee</div>
+    <nav>
+      <a href="/">View site</a>
+      <a href="#" id="logout-link">Log out</a>
+    </nav>
+  </div>
+
+  <main>
+    <h1>Your Assignments</h1>
+    <div id="assignments-list"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const token = localStorage.getItem('vf_referee_token');
+    if (!token) window.location.href = '/referee/login.html';
+
+    document.getElementById('logout-link').addEventListener('click', () => {
+      localStorage.removeItem('vf_referee_token');
+      window.location.href = '/referee/login.html';
+    });
+
+    async function refFetch(path, options = {}) {
+      const res = await fetch(`/api${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          ...(options.headers || {}),
+        },
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Request failed');
+      return res.json();
+    }
+
+    async function loadAssignments() {
+      const assignments = await refFetch('/referees/assignments/mine');
+      const listEl = document.getElementById('assignments-list');
+
+      if (!assignments.length) {
+        listEl.innerHTML = '<div class="empty-state">No matches assigned to you yet.</div>';
+        return;
+      }
+
+      listEl.innerHTML = assignments.map(a => `
+        <div class="card">
+          <div class="fixture-row">
+            <div>
+              <div class="teams">${a.fixture.home_team.name} vs ${a.fixture.away_team.name}</div>
+              <div class="meta">
+                ${API.formatDate(a.fixture.match_date)}
+                ${a.fixture.pitch ? ' · ' + a.fixture.pitch.name : ''}
+                ${a.fixture.pitch && a.fixture.pitch.latitude ? ` · <a href="https://maps.google.com/?q=${a.fixture.pitch.latitude},${a.fixture.pitch.longitude}" target="_blank">map</a>` : ''}
+              </div>
+            </div>
+            <div>
+              ${a.confirmed
+                ? '<span class="status-tag finished">Confirmed</span>'
+                : `<button data-id="${a.id}" class="confirm-btn">Confirm availability</button>`}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.confirm-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Confirming...';
+          try {
+            await refFetch(`/referees/assignments/${btn.dataset.id}/confirm`, { method: 'PATCH' });
+            loadAssignments();
+          } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            btn.textContent = 'Confirm availability';
+          }
+        });
+      });
+    }
+
+    loadAssignments().catch(err => {
+      document.getElementById('assignments-list').innerHTML =
+        `<div class="error-text">${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>
